@@ -41,12 +41,12 @@ exports.run = {
 			} else if (/conversation|extended/.test(m.mtype) && text !== "") {
             client.sendReact(m.chat, "🥰", m.key);
             let json = await Func.fetchJson(
-              `https://aemt.me/bard?text=${encodeURIComponent(text)}`
+              `https://aemt.me/bard?text=${encodeURIComponent(prompt + body.replace(/(Errin|errin)/g, ""))}`
             );
             let data = json.result;
             if (data === "Request failed!") {
               const json = await Api.neoxr("/bard", {
-                q: text,
+                q: prompt + text.replace(/(Errin|errin)/g, ""),
               });
               client.reply(m.chat, json.data.message, m);
             } else {
