@@ -7,7 +7,8 @@ const spinnies = new(require('spinnies'))(),
    path = require('path'),
    colors = require('@colors/colors'),
    stable = require('json-stable-stringify'),
-   env = require('./config.json')
+   env = require('./config.json'),
+   { platform } = require('os')
 const cache = new(require('node-cache'))({
    stdTTL: env.cooldown
 })
@@ -57,12 +58,35 @@ client.on('ready', async () => {
    require('./lib/system/config'), require('./lib/system/baileys')(client.sock), require('./lib/system/functions'), require('./lib/system/scraper')
 
    /* clear temp folder every 10 minutes */
-   setInterval(() => {
+   setInterval(async () => {
       try {
          const tmpFiles = fs.readdirSync('./temp')
          if (tmpFiles.length > 0) {
             tmpFiles.filter(v => !v.endsWith('.file')).map(v => fs.unlinkSync('./temp/' + v))
          }
+         
+         /* this source from @jarspay */
+         const TIME = 1000 * 60 * 60
+         const filename = []
+         const files = await fs.readdirSync('./session')
+         for (const file of files) {
+            if (file != 'creds.json') filename.push(path.join('./session', file))
+         }
+
+         await Promise.allSettled(filename.map(async (file) => {
+            const stat = await fs.statSync(file)
+            if (stat.isFile() && (Date.now() - stat.mtimeMs >= TIME)) {
+               if (platform() === 'win32') {
+                  let fileHandle
+                  try {
+                     fileHandle = await fs.openSync(file, 'r+')
+                  } catch (e) {} finally {
+                     await fileHandle.close()
+                  }
+               }
+               await fs.unlinkSync(file)
+            }
+         }))
       } catch {}
    }, 60 * 1000 * 10)
 
